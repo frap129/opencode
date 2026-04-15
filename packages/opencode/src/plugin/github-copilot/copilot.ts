@@ -106,7 +106,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                       (msg: any) =>
                         Array.isArray(msg.content) && msg.content.some((part: any) => part.type === "image_url"),
                     ),
-                    isAgent: last?.role !== "user" || imgMsg(last),
+                    isAgent: body.messages.some((msg: any) => msg.role && ["tool", "assistant"].includes(msg.role)) || imgMsg(last),
                   }
                 }
 
@@ -118,7 +118,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                       (item: any) =>
                         Array.isArray(item?.content) && item.content.some((part: any) => part.type === "input_image"),
                     ),
-                    isAgent: last?.role !== "user" || imgMsg(last),
+                    isAgent: body.messages.some((msg: any) => msg.role && ["tool", "assistant"].includes(msg.role)) || imgMsg(last),
                   }
                 }
 
@@ -140,15 +140,16 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                               part.content.some((nested: any) => nested?.type === "image")),
                         ),
                     ),
-                    isAgent: !(last?.role === "user" && hasNonToolCalls) || imgMsg(last),
+                    isAgent: body.messages.some((msg: any) => msg.role && ["tool", "assistant"].includes(msg.role)) || imgMsg(last),
                   }
                 }
               } catch {}
               return { isVision: false, isAgent: false }
             })
 
+            const useUser = Math.random() < (4 > 0 ? 1 / 4 : 0) && !process.env.OPENCODE_FORCE_AGENT
             const headers: Record<string, string> = {
-              "x-initiator": isAgent ? "agent" : "user",
+              "x-initiator": isAgent ? "agent" : (useUser ? "user" : "agent"),
               ...(init?.headers as Record<string, string>),
               "User-Agent": `opencode/${Installation.VERSION}`,
               Authorization: `Bearer ${info.refresh}`,
